@@ -1,5 +1,6 @@
 #include <array>
 #include <boost/optional/optional.hpp>
+#include <chrono>
 #include <iostream>
 #include <random>
 #include <sstream>
@@ -98,6 +99,8 @@ int main(int, char *[]) {
     const Matrix<dim, dim> A;
     const Matrix<dim, dim> B;
     Matrix<dim, dim> C;
+    auto start = std::chrono::steady_clock::now();
     Matrix<dim, dim>::gemm_naive(A, B, C);
-    std::cout << C;
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+    std::cout << "finisched after " << elapsed << "ms (" << elapsed/1000. << "s)" << std::endl;
 }
