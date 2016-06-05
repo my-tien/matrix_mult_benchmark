@@ -66,6 +66,21 @@ public:
         }
         return product;
     }
+
+    static void gemm_naive(const Matrix & A, const Matrix & B, Matrix & C) {
+        if (A.rows() != B.cols() || A.cols() != B.rows()) {
+            std::stringstream error;
+            error << "Mismatching matrix dimensions, A(" << A.rows() << "×" << A.cols() << "), B(" << B.rows() << "×" << B.cols() << "), C(" << C.rows() << "×" << C.cols() << ")";
+            throw std::runtime_error(error.str());
+        }
+        for (std::size_t row = 0; row < numRows; ++row) {
+        for (std::size_t col = 0; col < numCols; ++col) {
+        for (std::size_t i = 0; i < numRows; ++i) {
+            C.data[row][col] += A.data[row][i] * B.data[i][col];
+        }
+        }
+        }
+    }
 };
 template<std::size_t numRows, std::size_t numCols>
 std::ostream& operator<<(std::ostream &stream, const Matrix<numRows, numCols> & m) {
@@ -79,11 +94,10 @@ std::ostream& operator<<(std::ostream &stream, const Matrix<numRows, numCols> & 
 }
 
 int main(int, char *[]) {
-    const Matrix<3, 3> A;
-    const Matrix<3, 3> B;
-    std::cout << "A:\n" << A;
-    std::cout << "B:\n" << B;
-    std::cout << "A + B:\n" << A + B;
-    std::cout << "A * B:\n" << A * B;
-
+    const std::size_t dim = 500;
+    const Matrix<dim, dim> A;
+    const Matrix<dim, dim> B;
+    Matrix<dim, dim> C;
+    Matrix<dim, dim>::gemm_naive(A, B, C);
+    std::cout << C;
 }
