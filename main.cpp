@@ -7,8 +7,8 @@
 template<std::size_t numRows, std::size_t numCols>
 class Matrix {
 public:
-    std::array<std::array<int, numCols>, numRows> data;
-    Matrix(const boost::optional<int> initValue = boost::none) {
+    std::array<std::array<double, numCols>, numRows> data;
+    Matrix(const boost::optional<double> initValue = boost::none) {
         if (initValue) {
             for (std::size_t row = 0; row < numRows; ++row) {
             for (std::size_t col = 0; col < numCols; ++col) {
@@ -18,7 +18,7 @@ public:
         } else {
             std::random_device rd;
             std::mt19937 generator(rd());
-            std::uniform_int_distribution<> dist(0, 1000);
+            std::uniform_real_distribution<double> dist(0, 1000);
 
             for (std::size_t row = 0; row < numRows; ++row) {
             for (std::size_t col = 0; col < numCols; ++col) {
