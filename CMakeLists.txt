@@ -4,3 +4,5 @@ aux_source_directory(. SRC_LIST)
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 target_compile_options(${PROJECT_NAME} PRIVATE "-std=c++14" "-pedantic-errors")
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wall" "-Wextra")
+
+target_link_libraries (${PROJECT_NAME} -lcblas)

@@ -5,6 +5,8 @@
 #include <random>
 #include <sstream>
 
+#include <cblas.h>
+
 template<std::size_t numRows, std::size_t numCols>
 class Matrix {
 public:
@@ -95,12 +97,17 @@ std::ostream& operator<<(std::ostream &stream, const Matrix<numRows, numCols> & 
 }
 
 int main(int, char *[]) {
-    const std::size_t dim = 500;
-    const Matrix<dim, dim> A;
-    const Matrix<dim, dim> B;
-    Matrix<dim, dim> C;
-    auto start = std::chrono::steady_clock::now();
-    Matrix<dim, dim>::gemm_naive(A, B, C);
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
-    std::cout << "finisched after " << elapsed << "ms (" << elapsed/1000. << "s)" << std::endl;
+    const std::size_t dim = 1000;
+    const auto A = new Matrix<dim, dim>();
+    const auto B = new Matrix<dim, dim>();
+    auto C = new Matrix<dim, dim>();
+    auto start1 = std::chrono::steady_clock::now();
+    Matrix<dim, dim>::gemm_naive(*A, *B, *C);
+    auto elapsed1 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start1).count();
+    auto start2 = std::chrono::steady_clock::now();
+    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                dim, dim, dim,
+                1, A->data, dim, B->data, dim, 1, C->data, dim);
+    auto elapsed2 = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start2).count();
+    std::cout << "naive gemm: " << elapsed1 << "ms (" << elapsed1/1000. << "s), cblas gemm: " << elapsed2 << "ms (" << elapsed2/1000. << "s). " << std::endl;
 }
