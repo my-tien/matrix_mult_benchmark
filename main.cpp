@@ -8,22 +8,22 @@
 template<std::size_t numRows, std::size_t numCols>
 class Matrix {
 public:
-    std::array<std::array<double, numCols>, numRows> data;
-    Matrix(const boost::optional<double> initValue = boost::none) {
+    float data[numRows*numCols];
+    Matrix(const boost::optional<float> initValue = boost::none) {
         if (initValue) {
             for (std::size_t row = 0; row < numRows; ++row) {
             for (std::size_t col = 0; col < numCols; ++col) {
-                data[row][col] = initValue.get();
+                data[row+col] = initValue.get();
             }
             }
         } else {
             std::random_device rd;
             std::mt19937 generator(rd());
-            std::uniform_real_distribution<double> dist(0, 1000);
+            std::uniform_real_distribution<float> dist(0, 1000);
 
             for (std::size_t row = 0; row < numRows; ++row) {
             for (std::size_t col = 0; col < numCols; ++col) {
-                data[row][col] = dist(generator);
+                data[row+col] = dist(generator);
             }
             }
         }
@@ -45,7 +45,7 @@ public:
         Matrix<numRows, numCols> sum(0);
         for (std::size_t row = 0; row < numRows; ++row) {
         for (std::size_t col = 0; col < numCols; ++col) {
-            sum.data[row][col] = data[row][col] + other.data[row][col];
+            sum.data[row+col] = data[row+col] + other.data[row+col];
         }
         }
         return sum;
@@ -61,7 +61,7 @@ public:
         for (std::size_t row = 0; row < numRows; ++row) {
         for (std::size_t col = 0; col < numCols; ++col) {
         for (std::size_t i = 0; i < numRows; ++i) {
-            product.data[row][col] += data[row][i] * other.data[i][col];
+            product.data[row+col] += data[row+i] * other.data[i+col];
         }
         }
         }
@@ -77,7 +77,7 @@ public:
         for (std::size_t row = 0; row < numRows; ++row) {
         for (std::size_t col = 0; col < numCols; ++col) {
         for (std::size_t i = 0; i < numRows; ++i) {
-            C.data[row][col] += A.data[row][i] * B.data[i][col];
+            C.data[row+col] += A.data[row+i] * B.data[i+col];
         }
         }
         }
@@ -87,7 +87,7 @@ template<std::size_t numRows, std::size_t numCols>
 std::ostream& operator<<(std::ostream &stream, const Matrix<numRows, numCols> & m) {
     for (std::size_t row = 0; row < m.rows(); ++row) {
         for (std::size_t col = 0; col < m.cols(); ++col) {
-            stream << m.data[row][col] << " ";
+            stream << m.data[row+col] << " ";
         }
         stream << "\n";
     }
