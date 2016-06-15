@@ -73,43 +73,65 @@ std::ostream& aligned(const float number, const int width, const int precision) 
 }
 
 int main(int, char *[]) {
-    const std::size_t samplesPerDim = 10;
-    const std::size_t numDims = 1;
+    const std::size_t samplesPerDim = 100;
+    const std::size_t numDims = 10;
     const std::size_t stepSize = 100;
-    std::array<std::pair<float, float>, numDims> results;
+    std::array<std::array<float, 3>, numDims> results;
 
     for (std::size_t i = 0; i < numDims; ++i) {
         const std::size_t dim = (i+1)*stepSize;
         long avgNaiveGemm = 0;
-        long avgCblasGemm = 0;
+        long avgCblasGemmSingle = 0;
+        long avgCblasGemmMulti = 0;
+        const Matrix A(dim, dim);
+        std::cout << "  finished building matrix A" << std::endl;
+        const Matrix B(dim, dim);
+        std::cout << "  finished building matrix B" << std::endl;
+        Matrix C(dim, dim);
+        std::cout << "  finished building matrix C" << std::endl;
         for (uint sample = 0; sample < samplesPerDim; ++sample) {
-            const Matrix A(dim, dim);
-            const Matrix B(dim, dim);
-            Matrix C(dim, dim);
+            std::cout << "Dimension " << dim << ", sample " << sample + 1 << std::endl;
+            const int intDim = static_cast<int>(dim);
 
             auto startNaive = std::chrono::steady_clock::now();
             Matrix::gemm_naive(A, B, C);
             avgNaiveGemm += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - startNaive).count();
+            std::cout << "  finished naive gemm" << std::endl;
 
-            const int intDim = static_cast<int>(dim);
+            openblas_set_num_threads(1);
             auto startCblas = std::chrono::steady_clock::now();
             cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
                         intDim, intDim, intDim,
                         1, A.data, intDim, B.data, intDim, 1, C.data, intDim);
-            avgCblasGemm += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - startCblas).count();
+            avgCblasGemmSingle += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - startCblas).count();
+            std::cout << "  finished cblas gemm single-core." << std::endl;
+
+            openblas_set_num_threads(4);
+            auto startCblasMulti = std::chrono::steady_clock::now();
+            cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                        intDim, intDim, intDim,
+                        1, A.data, intDim, B.data, intDim, 1, C.data, intDim);
+            std::cout << "  finished cblas gemm multi-core (4 threads)" << std::endl;
+            avgCblasGemmMulti += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - startCblasMulti).count();
         }
-        results[i] = std::make_pair(static_cast<float>(avgNaiveGemm)/samplesPerDim, static_cast<float>(avgCblasGemm)/samplesPerDim);
-        std::cout << "finished dimension " << (i+1)*stepSize << std::endl;
+        results[i] = {static_cast<float>(avgNaiveGemm)/samplesPerDim, static_cast<float>(avgCblasGemmSingle)/samplesPerDim, static_cast<float>(avgCblasGemmMulti)/samplesPerDim};
+        std::cout << "finished dimension " << dim << std::endl << std::endl;
     }
 
     std::cout << "Dimensions: " << numDims << ", step size: " << stepSize << ", samples per dimension: " << samplesPerDim << std::endl;
     for (std::size_t i = 0; i < numDims; ++i) {
-        auto naive = results[i].first;
-        auto cblas = results[i].second;
-        std::cout << "dim: "; aligned((i+1)*stepSize, 4, 0) << ". Naive gemm: "; aligned(naive/std::pow(10.f, 6.f), 8, 3) << "ms ("; aligned(naive/std::pow(10.f, 9.f), 5, 3);
-        std::cout << "s), cblas gemm: "; aligned(cblas/std::pow(10.f, 6.f), 8, 3) << "ms ("; aligned(cblas/std::pow(10.f, 9.f), 5, 3) << "ss).";
-        if (cblas > 0) {
-            std::cout << " naive/cblas: "; aligned(static_cast<float>(naive)/cblas, 5, 2);
+        auto naive = results[i][0];
+        auto cblasSingle = results[i][1];
+        auto cblasMulti = results[i][2];
+        std::cout << "dim "; aligned((i+1)*stepSize, 4, 0) << ":" << std::endl;
+        std::cout << "Naive: "; aligned(naive/std::pow(10.f, 6.f), 8, 3) << "ms ("; aligned(naive/std::pow(10.f, 9.f), 5, 3);
+        std::cout << "s), cblas single-core: "; aligned(cblasSingle/std::pow(10.f, 6.f), 8, 3) << "ms ("; aligned(cblasSingle/std::pow(10.f, 9.f), 5, 3) << "s).";
+        std::cout << "s), cblas multi-core: "; aligned(cblasMulti/std::pow(10.f, 6.f), 8, 3) << "ms ("; aligned(cblasMulti/std::pow(10.f, 9.f), 5, 3) << "s)." << std::endl;
+        if (cblasSingle > 0) {
+            std::cout << "Ratio naive/cblas-single-core: "; aligned(static_cast<float>(naive)/cblasSingle, 5, 2) << std::endl;
+            if (cblasMulti > 0) {
+                std::cout << "Ratio naive/cblas-multi-core: "; aligned(static_cast<float>(naive)/cblasMulti, 5, 2) << ", cblas-single-core/cblas-multi-core: "; aligned(static_cast<float>(cblasSingle)/cblasMulti, 5, 2) << std::endl;
+            }
         }
         std::cout << std::endl;
     }
